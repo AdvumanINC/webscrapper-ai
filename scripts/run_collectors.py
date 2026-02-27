@@ -9,9 +9,7 @@ Usage:
 
 import argparse
 import asyncio
-import os
 import sys
-from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -290,6 +288,9 @@ async def _persist_events(events, collector, lane_name: str, use_llm: bool) -> i
 
 
 async def run_single(name: str, *, persist: bool, lane_name: str, use_llm: bool) -> None:
+
+
+async def run_single(name: str) -> None:
     print(f"\n{'='*60}")
     print(f"Running collector: {name}")
     print(f"{'='*60}")
@@ -305,20 +306,11 @@ async def run_single(name: str, *, persist: bool, lane_name: str, use_llm: bool)
             if event.content:
                 preview = event.content[:120].replace("\n", " ")
                 print(f"      {preview}...")
-
-        if persist and events:
-            inserted = await _persist_events(events, collector, lane_name, use_llm)
-            print(f"  Persisted {inserted} event(s) to DB")
     except Exception as e:
         print(f"  ERROR: {e}")
 
 
 async def main(args: argparse.Namespace) -> None:
-    if args.local:
-        db_path = Path(args.sqlite_path).resolve()
-        os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{db_path.as_posix()}"
-        print(f"Using local SQLite DB: {db_path}")
-
     if args.list:
         print("Available collectors:")
         for name in list_collectors():
@@ -335,12 +327,7 @@ async def main(args: argparse.Namespace) -> None:
         return
 
     for name in names:
-        await run_single(
-            name,
-            persist=args.persist,
-            lane_name=args.lane,
-            use_llm=not args.no_llm,
-        )
+        await run_single(name)
 
     print(f"\nDone. Ran {len(names)} collector(s).")
 
@@ -350,10 +337,5 @@ if __name__ == "__main__":
     parser.add_argument("--all", action="store_true", help="Run all collectors")
     parser.add_argument("--source", nargs="+", default=[], help="Specific collector(s) to run")
     parser.add_argument("--list", action="store_true", help="List available collectors")
-    parser.add_argument("--persist", action="store_true", help="Persist collected events to database")
-    parser.add_argument("--lane", default="UK-India", help="Trade lane name used for persistence")
-    parser.add_argument("--no-llm", action="store_true", help="Disable LLM classification and use fallback classification")
-    parser.add_argument("--local", action="store_true", help="Use local SQLite DB for offline development")
-    parser.add_argument("--sqlite-path", default="advuman_local.db", help="SQLite file path used with --local")
     args = parser.parse_args()
     asyncio.run(main(args))
