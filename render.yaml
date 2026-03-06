@@ -1,0 +1,48 @@
+# Render.com deployment — web dashboard + daily cron job.
+#
+# Deploy: connect this repo in the Render dashboard and it auto-detects this file.
+# Set DATABASE_URL, ANTHROPIC_API_KEY, and SOURCES_SHEET_CSV_URL as environment
+# variables in the Render dashboard (mark them as secret).
+#
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  # ── Streamlit Dashboard ───────────────────────────────────────────────────
+  - type: web
+    name: advuman-dashboard
+    runtime: docker
+    # Render injects $PORT; Streamlit must listen on it.
+    dockerCommand: >-
+      streamlit run streamlit_app.py
+      --server.port $PORT
+      --server.address 0.0.0.0
+      --server.headless true
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false          # Set manually in Render dashboard (secret)
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SOURCES_SHEET_CSV_URL
+        sync: false
+
+  # ── Daily Collector + Pipeline Cron ──────────────────────────────────────
+  # Render Cron Jobs run a fresh container on the schedule. Each run:
+  #   1. Scrapes all 12 OSINT sources and persists events to the database.
+  #   2. Runs the quant pipeline (EWMA → z-score → CUSUM → weekly roll-up).
+  - type: cron
+    name: advuman-daily-collect
+    runtime: docker
+    schedule: "0 6 * * *"    # 06:00 UTC daily
+    dockerCommand: >-
+      sh -c "
+        python scripts/run_collectors.py --all --persist --lane UK-India &&
+        python scripts/run_pipeline.py --lane UK-India
+      "
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SOURCES_SHEET_CSV_URL
+        sync: false

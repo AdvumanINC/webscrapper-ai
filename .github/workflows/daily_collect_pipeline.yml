@@ -1,0 +1,59 @@
+name: Daily Data Collection
+
+# Runs every day at 06:00 UTC. Also triggerable manually with optional settings.
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      no_llm:
+        description: "Skip LLM classification (faster, no API cost)"
+        type: boolean
+        default: false
+      lane:
+        description: "Trade lane to process"
+        default: "UK-India"
+
+jobs:
+  collect-and-pipeline:
+    name: Collect OSINT + Run Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install Python dependencies
+        run: pip install -e .
+
+      - name: Install Playwright browsers
+        # Required for Felixstowe and Loadstar LSI collectors
+        run: playwright install chromium --with-deps
+
+      - name: Run OSINT collectors
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SOURCES_SHEET_CSV_URL: ${{ secrets.SOURCES_SHEET_CSV_URL }}
+        run: |
+          LANE="${{ github.event.inputs.lane || 'UK-India' }}"
+          NO_LLM="${{ github.event.inputs.no_llm }}"
+          ARGS="--all --persist --lane $LANE"
+          if [ "$NO_LLM" = "true" ]; then
+            ARGS="$ARGS --no-llm"
+          fi
+          python scripts/run_collectors.py $ARGS
+
+      - name: Run quant pipeline
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          LANE="${{ github.event.inputs.lane || 'UK-India' }}"
+          python scripts/run_pipeline.py --lane "$LANE"
