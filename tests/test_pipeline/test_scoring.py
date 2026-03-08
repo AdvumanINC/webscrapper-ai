@@ -29,7 +29,7 @@ def compute_weighted_score(
 
 
 def test_dgft_interest_subvention():
-    """DGFT Interest Subvention = -1 × 1.0 × 0.4 × 0.9 × 1.0 = -0.36"""
+    """DGFT Interest Subvention = -1 x 1.0 x 0.4 x 0.9 x 1.0 = -0.36"""
     score = compute_weighted_score(
         delta=-1,
         source_layer=SourceLayer.PRIMARY,
@@ -41,7 +41,7 @@ def test_dgft_interest_subvention():
 
 
 def test_felixstowe_storm():
-    """Felixstowe Storm = +1 × 0.8 × 1.0 × 0.9 × 1.0 = +0.72"""
+    """Felixstowe Storm = +1 x 0.8 x 1.0 x 0.9 x 1.0 = +0.72"""
     score = compute_weighted_score(
         delta=+1,
         source_layer=SourceLayer.LOGISTICS,
@@ -53,7 +53,7 @@ def test_felixstowe_storm():
 
 
 def test_novel_event_gets_higher_weight():
-    """Novel events (no precedent) get 1.2× multiplier."""
+    """Novel events (no precedent) get 1.2x multiplier."""
     novel = compute_weighted_score(
         delta=+1,
         source_layer=SourceLayer.PRIMARY,
@@ -81,8 +81,5 @@ def test_low_confidence_industry_draft():
         confidence="Low",
         historical_precedent=True,
     )
-    # 1 × 0.6 × 0.4 × 0.3 × 1.0 = 0.072
+    # 1 x 0.6 x 0.4 x 0.3 x 1.0 = 0.072
     assert score == pytest.approx(0.072)
-
-
-
