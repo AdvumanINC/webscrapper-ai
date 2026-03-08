@@ -85,4 +85,4 @@ def test_low_confidence_industry_draft():
     assert score == pytest.approx(0.072)
 
 
-import pytest
+
