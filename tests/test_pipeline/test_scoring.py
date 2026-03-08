@@ -1,12 +1,14 @@
 """Test the weighted scoring logic against Danha's sprint plan examples."""
 
+import pytest
+
+from src.db.models import SourceLayer
 from src.db.seed import (
     CONFIDENCE_WEIGHTS,
     PRECEDENT_WEIGHTS,
     SOURCE_WEIGHTS,
     STATUS_WEIGHTS,
 )
-from src.db.models import SourceLayer
 
 
 def compute_weighted_score(
